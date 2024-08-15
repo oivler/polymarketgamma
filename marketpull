@@ -1,0 +1,53 @@
+!pip install py-clob-client
+from py_clob_client.client import ClobClient
+import requests
+
+import pandas as pd
+url = "https://gamma-api.polymarket.com/markets"
+limit = 100  
+offset = 0 
+
+all_markets = []
+
+while True:
+    params = {
+        "limit": limit,
+        "offset": offset
+    }
+    
+    response = requests.get(url, params=params)
+    
+    if response.status_code == 200:
+        markets_list = response.json()
+
+        if not markets_list:
+            break
+
+        all_markets.extend(markets_list)
+        
+        if len(markets_list) < limit:
+            break
+
+        offset += limit
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        break
+
+print(f"Total markets retrieved: {len(all_markets)}")
+df = pd.DataFrame(all_markets)
+
+unique_markets = {}
+for market in all_markets:
+    condition_id = market.get('conditionId')
+    if condition_id not in unique_markets:
+        unique_markets[condition_id] = market
+
+unique_markets_list = list(unique_markets.values())
+
+active_markets_list = []
+
+for market in unique_markets_list:
+    if 'acceptingOrders' in market and market['acceptingOrders'] == True:
+        active_markets_list.append(market)
+
+active_markets_list
